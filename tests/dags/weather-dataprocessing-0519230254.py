@@ -1,6 +1,6 @@
 from airflow.providers.cncf.kubernetes.operators.pod import KubernetesPodOperator
 from kubernetes.client.models import V1Volume as Volume
-from kubernetes.client.models import V1VolumeMount as VolumeMount 
+from kubernetes.client.models import V1VolumeMount as VolumeMount
 from airflow.providers.cncf.kubernetes.secret import Secret
 from airflow import DAG
 from airflow.utils.dates import days_ago
