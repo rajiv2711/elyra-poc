@@ -1,0 +1,186 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: elyra-config
+data:
+  airflow_component_catalog.json: |
+    {
+      "components": [
+        {
+          "id": "airflow-kubernetes-pod-operator",
+          "type": "APACHE_AIRFLOW",
+          "display_name": "Kubernetes Pod Operator",
+          "description": "Executes a task in a Kubernetes Pod",
+          "metadata": {
+            "runtime_type": "APACHE_AIRFLOW",
+            "import_statement": "from airflow.providers.cncf.kubernetes.operators.pod import KubernetesPodOperator",
+            "class_name": "KubernetesPodOperator"
+          }
+        },
+        {
+          "id": "airflow-volume",
+          "type": "APACHE_AIRFLOW",
+          "display_name": "Kubernetes Volume",
+          "description": "Kubernetes Volume for Pod Operator",
+          "metadata": {
+            "runtime_type": "APACHE_AIRFLOW",
+            "import_statement": "from airflow.kubernetes.volume import Volume",
+            "class_name": "Volume"
+          }
+        },
+        {
+          "id": "airflow-volume-mount",
+          "type": "APACHE_AIRFLOW",
+          "display_name": "Kubernetes Volume Mount",
+          "description": "Kubernetes Volume Mount for Pod Operator",
+          "metadata": {
+            "runtime_type": "APACHE_AIRFLOW",
+            "import_statement": "from airflow.kubernetes.volume_mount import VolumeMount",
+            "class_name": "VolumeMount"
+          }
+        }
+      ]
+    }
+  patch-elyra.sh: |
+    #!/bin/bash
+    set -e
+    
+    # Find the Elyra airflow processor file
+    PROCESSOR_FILE=$(find /opt/conda/lib/python*/site-packages/elyra/pipeline/airflow -name "processor*.py" | head -n 1)
+    
+    if [ -z "$PROCESSOR_FILE" ]; then
+      echo "Could not find Elyra Airflow processor file"
+      exit 1
+    fi
+    
+    echo "Patching $PROCESSOR_FILE"
+    
+    # Check if already patched
+    if grep -q "tests/dags" "$PROCESSOR_FILE"; then
+      echo "Elyra Airflow processor already patched"
+    else
+      # Create backup
+      cp "$PROCESSOR_FILE" "${PROCESSOR_FILE}.bak"
+      
+      # Apply patch
+      sed -i 's/dag_file_path = os.path.join(self.git_repo_dir, dag_filename)/dags_dir = os.path.join(self.git_repo_dir, "tests\/dags")\n        os.makedirs(dags_dir, exist_ok=True)\n        dag_file_path = os.path.join(dags_dir, dag_filename)/g' "$PROCESSOR_FILE"
+      
+      echo "Successfully patched Elyra Airflow processor to use 'tests/dags' subdirectory"
+    fi
+    
+    # Create runtime configuration directory
+    mkdir -p /home/jovyan/.local/share/jupyter/metadata/runtimes/
+    
+    # Create runtime configuration
+    cat > /home/jovyan/.local/share/jupyter/metadata/runtimes/airflow-runtime.json << 'EOF'
+    {
+      "display_name": "Apache Airflow",
+      "metadata": {
+        "runtime_type": "APACHE_AIRFLOW",
+        "airflow_url": "http://airflow-webserver.airflow.svc.cluster.local:8080",
+        "github_api_endpoint": "https://api.github.com",
+        "github_repo": "https://github.com/victorfonseca/elyra-poc.git",
+        "github_branch": "main",
+        "github_repo_token": "",
+        "cos_endpoint": "http://minio.default.svc.cluster.local:9000",
+        "cos_bucket": "elyra-airflow",
+        "cos_username": "minio",
+        "cos_password": "minio123"
+      },
+      "schema_name": "airflow"
+    }
+    EOF
+    
+    # Create component catalog directory
+    mkdir -p /opt/conda/share/jupyter/metadata/runtime-images/
+    
+    # Copy component catalog
+    cp /elyra-config/airflow_component_catalog.json /opt/conda/share/jupyter/metadata/runtime-images/
+    
+    # Fix permissions
+    chown -R jovyan:users /home/jovyan/.local/share/jupyter/metadata/
+    chown -R jovyan:users /opt/conda/share/jupyter/metadata/
+    
+    echo "Elyra configuration completed successfully"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: elyra
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: elyra
+  template:
+    metadata:
+      labels:
+        app: elyra
+    spec:
+      initContainers:
+      - name: init-elyra
+        image: elyra/elyra:3.15.0
+        command: ["/bin/bash", "-c"]
+        args:
+        - |
+          # Install Airflow dependencies
+          pip install apache-airflow==2.10.5 apache-airflow-providers-cncf-kubernetes>=2.0.0
+          
+          # Run the patch script
+          /elyra-config/patch-elyra.sh
+        volumeMounts:
+        - name: elyra-config
+          mountPath: /elyra-config
+        - name: elyra-home
+          mountPath: /home/jovyan
+      containers:
+      - name: elyra
+        image: elyra/elyra:3.15.0
+        ports:
+        - containerPort: 8888
+        env:
+        - name: JUPYTER_ENABLE_LAB
+          value: "yes"
+        - name: JUPYTER_TOKEN
+          value: ""
+        - name: JUPYTER_PASSWORD
+          value: ""
+        command: ["jupyter", "lab", "--ip=0.0.0.0", "--port=8888", "--no-browser", "--allow-root", "--NotebookApp.token=''", "--NotebookApp.password=''"]
+        volumeMounts:
+        - name: elyra-home
+          mountPath: /home/jovyan
+        - name: elyra-work
+          mountPath: /home/jovyan/work
+        readinessProbe:
+          httpGet:
+            path: /lab
+            port: 8888
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /lab
+            port: 8888
+          initialDelaySeconds: 30
+          periodSeconds: 10
+      volumes:
+      - name: elyra-config
+        configMap:
+          name: elyra-config
+          defaultMode: 0755
+      - name: elyra-home
+        emptyDir: {}
+      - name: elyra-work
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: elyra
+spec:
+  selector:
+    app: elyra
+  ports:
+  - port: 8888
+    targetPort: 8888
+  type: NodePort
