@@ -1,7 +1,7 @@
-from airflow.contrib.operators.kubernetes_pod_operator import KubernetesPodOperator
-from airflow.contrib.kubernetes.volume_mount import VolumeMount
-from airflow.contrib.kubernetes.volume import Volume
-from airflow.kubernetes.secret import Secret
+from airflow.providers.cncf.kubernetes.operators.pod import KubernetesPodOperator
+from kubernetes.client.models import V1Volume as Volume
+from kubernetes.client.models import V1VolumeMount as VolumeMount
+from airflow.providers.cncf.kubernetes.secret import Secret
 from airflow import DAG
 from airflow.utils.dates import days_ago
 
@@ -25,7 +25,7 @@ Created with Elyra 3.15.0 pipeline editor using `weather-dataprocessing.pipeline
 
 op_97c8a3ba_617e_4e50_bcaf_0e8780b292e6 = KubernetesPodOperator(
     name="01_generate_data",
-    namespace="default",
+    namespace="airflow",
     image="continuumio/anaconda3@sha256:a2816acd3acda208d92e0bf6c11eb41fda9009ea20f24e123dbf84bb4bd4c4b8",
     cmds=["sh", "-c"],
     arguments=[
@@ -46,7 +46,7 @@ op_97c8a3ba_617e_4e50_bcaf_0e8780b292e6 = KubernetesPodOperator(
     labels={},
     tolerations=[],
     in_cluster=True,
-    config_file="None",
+    config_file=None,
     dag=dag,
 )
 
@@ -55,7 +55,7 @@ op_97c8a3ba_617e_4e50_bcaf_0e8780b292e6 = KubernetesPodOperator(
 
 op_2440d962_284c_49a9_875a_140881918a10 = KubernetesPodOperator(
     name="02_process_data",
-    namespace="default",
+    namespace="airflow",
     image="continuumio/anaconda3@sha256:a2816acd3acda208d92e0bf6c11eb41fda9009ea20f24e123dbf84bb4bd4c4b8",
     cmds=["sh", "-c"],
     arguments=[
@@ -76,7 +76,7 @@ op_2440d962_284c_49a9_875a_140881918a10 = KubernetesPodOperator(
     labels={},
     tolerations=[],
     in_cluster=True,
-    config_file="None",
+    config_file=None,
     dag=dag,
 )
 
@@ -87,7 +87,7 @@ op_2440d962_284c_49a9_875a_140881918a10 << op_97c8a3ba_617e_4e50_bcaf_0e8780b292
 
 op_5e235070_9152_4f1b_aa30_093385621aff = KubernetesPodOperator(
     name="03_visualize_data",
-    namespace="default",
+    namespace="airflow",
     image="continuumio/anaconda3@sha256:a2816acd3acda208d92e0bf6c11eb41fda9009ea20f24e123dbf84bb4bd4c4b8",
     cmds=["sh", "-c"],
     arguments=[
@@ -108,7 +108,7 @@ op_5e235070_9152_4f1b_aa30_093385621aff = KubernetesPodOperator(
     labels={},
     tolerations=[],
     in_cluster=True,
-    config_file="None",
+    config_file=None,
     dag=dag,
 )
 
