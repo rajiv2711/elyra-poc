@@ -1,0 +1,16 @@
+hub:
+  config:
+    JupyterHub:
+      authenticator_class: dummy
+singleuser:
+  image:
+    name: victorfonseca/elyra-runtime
+    tag: v2
+    pullPolicy: Always
+  storage:
+    dynamic:
+      storageClass: hostpath
+  defaultUrl: "/lab"
+  cmd: ["jupyter-labhub"]
+  extraEnv:
+    JUPYTER_ENABLE_LAB: "yes"

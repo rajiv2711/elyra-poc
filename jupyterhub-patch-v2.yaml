@@ -1,0 +1,8 @@
+singleuser:
+  image:
+    name: victorfonseca/elyra-runtime
+    tag: v2
+    pullPolicy: Always
+  storage:
+    dynamic:
+      storageClass: hostpath
