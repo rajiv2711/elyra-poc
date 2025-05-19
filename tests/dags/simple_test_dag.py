@@ -48,6 +48,3 @@ task1 = KubernetesPodOperator(
     volume_mounts=[volume_mount],
     dag=dag,
 )
-
-# Set task dependencies
-task1
