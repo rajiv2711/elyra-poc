@@ -1,8 +1,0 @@
-singleuser:
-  image:
-    name: victorfonseca/elyra-runtime
-    tag: latest
-    pullPolicy: IfNotPresent
-  storage:
-    dynamic:
-      storageClass: hostpath
