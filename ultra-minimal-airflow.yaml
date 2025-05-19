@@ -1,0 +1,5 @@
+executor: KubernetesExecutor
+webserver:
+  service:
+    type: NodePort
+    nodePort: 30880

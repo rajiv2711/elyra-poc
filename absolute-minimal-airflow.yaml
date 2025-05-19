@@ -1,0 +1,4 @@
+executor: KubernetesExecutor
+webserver:
+  service:
+    type: NodePort

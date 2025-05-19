@@ -1,0 +1,12 @@
+dags:
+  persistence:
+    enabled: true
+    existingClaim: "airflow-dags-pvc"
+  gitSync:
+    enabled: true
+    repo: "https://github.com/victorfonseca/elyra-poc.git"
+    branch: "main"
+    rev: "HEAD"
+    depth: 1
+    maxFailures: 0
+    subPath: ""
