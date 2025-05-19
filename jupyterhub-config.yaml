@@ -1,0 +1,11 @@
+singleuser:
+  defaultUrl: "/lab"
+  image:
+    name: elyra/elyra
+    tag: latest
+    pullPolicy: "Always"
+  storage:
+    dynamic:
+      storageClass: standard
+  extraEnv:
+    JUPYTER_ENABLE_LAB: "yes"
