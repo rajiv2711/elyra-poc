@@ -1,0 +1,14 @@
+executor: KubernetesExecutor
+webserver:
+  service:
+    type: NodePort
+dags:
+  gitSync:
+    enabled: true
+    repo: "https://github.com/victorfonseca/elyra-poc.git"
+    branch: "main"
+    depth: 1
+    maxFailures: 0
+env:
+  - name: AIRFLOW__CORE__DAGS_FOLDER
+    value: /opt/airflow/dags/repo
