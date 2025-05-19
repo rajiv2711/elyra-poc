@@ -1,7 +1,7 @@
-from airflow.contrib.operators.kubernetes_pod_operator import KubernetesPodOperator
+from airflow.providers.cncf.kubernetes.operators.kubernetes_pod import KubernetesPodOperator
 from kubernetes.client.models import V1Volume as Volume
 from kubernetes.client.models import V1VolumeMount as VolumeMount
-from airflow.kubernetes.secret import Secret
+from airflow.providers.cncf.kubernetes.secret import Secret
 from airflow import DAG
 from airflow.utils.dates import days_ago
 
@@ -25,7 +25,7 @@ Created with Elyra 3.15.0 pipeline editor using `weather-data-pipeline`.
 
 op_dd70bea8_d76d_41ed_a97b_4928415642ab = KubernetesPodOperator(
     name="data_generator",
-    namespace="default",
+    namespace="airflow",
     image="continuumio/anaconda3@sha256:a2816acd3acda208d92e0bf6c11eb41fda9009ea20f24e123dbf84bb4bd4c4b8",
     cmds=["sh", "-c"],
     arguments=[
@@ -46,7 +46,7 @@ op_dd70bea8_d76d_41ed_a97b_4928415642ab = KubernetesPodOperator(
     labels={},
     tolerations=[],
     in_cluster=True,
-    config_file="None",
+    config_file=None,
     dag=dag,
 )
 
@@ -55,7 +55,7 @@ op_dd70bea8_d76d_41ed_a97b_4928415642ab = KubernetesPodOperator(
 
 op_0f30bd68_6eb2_46e7_b71f_e117e7eae61b = KubernetesPodOperator(
     name="data_processor",
-    namespace="default",
+    namespace="airflow",
     image="continuumio/anaconda3@sha256:a2816acd3acda208d92e0bf6c11eb41fda9009ea20f24e123dbf84bb4bd4c4b8",
     cmds=["sh", "-c"],
     arguments=[
@@ -76,7 +76,7 @@ op_0f30bd68_6eb2_46e7_b71f_e117e7eae61b = KubernetesPodOperator(
     labels={},
     tolerations=[],
     in_cluster=True,
-    config_file="None",
+    config_file=None,
     dag=dag,
 )
 
@@ -87,7 +87,7 @@ op_0f30bd68_6eb2_46e7_b71f_e117e7eae61b << op_dd70bea8_d76d_41ed_a97b_4928415642
 
 op_8cd91e29_695e_48cb_98c0_3c9e627892ba = KubernetesPodOperator(
     name="data_visualizer",
-    namespace="default",
+    namespace="airflow",
     image="continuumio/anaconda3@sha256:a2816acd3acda208d92e0bf6c11eb41fda9009ea20f24e123dbf84bb4bd4c4b8",
     cmds=["sh", "-c"],
     arguments=[
@@ -108,7 +108,7 @@ op_8cd91e29_695e_48cb_98c0_3c9e627892ba = KubernetesPodOperator(
     labels={},
     tolerations=[],
     in_cluster=True,
-    config_file="None",
+    config_file=None,
     dag=dag,
 )
 
