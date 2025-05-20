@@ -1,245 +1,63 @@
+# Create a new namespace for Elyra
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: elyra-system
+---
+# ConfigMap for storing elyra-metadata CLI script
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: elyra-config
+  name: elyra-metadata-script
+  namespace: elyra-system
 data:
-  airflow_component_catalog.json: |
-    {
-      "components": [
-        {
-          "id": "airflow-kubernetes-pod-operator",
-          "type": "APACHE_AIRFLOW",
-          "display_name": "Kubernetes Pod Operator",
-          "description": "Executes a task in a Kubernetes Pod",
-          "metadata": {
-            "runtime_type": "APACHE_AIRFLOW",
-            "import_statement": "from airflow.providers.cncf.kubernetes.operators.pod import KubernetesPodOperator",
-            "class_name": "KubernetesPodOperator"
-          }
-        },
-        {
-          "id": "airflow-volume",
-          "type": "APACHE_AIRFLOW",
-          "display_name": "Kubernetes Volume",
-          "description": "Kubernetes Volume for Pod Operator",
-          "metadata": {
-            "runtime_type": "APACHE_AIRFLOW",
-            "import_statement": "from kubernetes.client.models import V1Volume as Volume",
-            "class_name": "Volume"
-          }
-        },
-        {
-          "id": "airflow-volume-mount",
-          "type": "APACHE_AIRFLOW",
-          "display_name": "Kubernetes Volume Mount",
-          "description": "Kubernetes Volume Mount for Pod Operator",
-          "metadata": {
-            "runtime_type": "APACHE_AIRFLOW",
-            "import_statement": "from kubernetes.client.models import V1VolumeMount as VolumeMount",
-            "class_name": "VolumeMount"
-          }
-        },
-        {
-          "id": "airflow-secret",
-          "type": "APACHE_AIRFLOW",
-          "display_name": "Kubernetes Secret",
-          "description": "Kubernetes Secret for Pod Operator",
-          "metadata": {
-            "runtime_type": "APACHE_AIRFLOW",
-            "import_statement": "from airflow.providers.cncf.kubernetes.secret import Secret",
-            "class_name": "Secret"
-          }
-        },
-        {
-          "id": "airflow-pendulum",
-          "type": "APACHE_AIRFLOW",
-          "display_name": "Pendulum DateTime",
-          "description": "Pendulum datetime library (replaces days_ago)",
-          "metadata": {
-            "runtime_type": "APACHE_AIRFLOW",
-            "import_statement": "import pendulum",
-            "class_name": "pendulum"
-          }
-        }
-      ]
-    }
-  jupyter_config.py: |
-    # Configuration for Elyra's Airflow Pipeline Processor
-    
-    # Tell Elyra to use modern Airflow operator imports
-    c.AirflowPipelineProcessor.available_airflow_operators = [
-        # Kubernetes operators
-        "airflow.providers.cncf.kubernetes.operators.pod.KubernetesPodOperator",
-        
-        # Kubernetes models
-        "kubernetes.client.models.V1Volume",
-        "kubernetes.client.models.V1VolumeMount",
-        "airflow.providers.cncf.kubernetes.secret.Secret",
-        
-        # Common operators
-        "airflow.providers.standard.operators.bash.BashOperator",
-        "airflow.providers.standard.operators.python.PythonOperator",
-        "airflow.providers.standard.operators.empty.EmptyOperator"
-    ]
-  patch-elyra.sh: |
+  setup-catalog.sh: |
     #!/bin/bash
     set -e
     
-    # Downgrade problematic packages first
-    pip install protobuf==3.20.3 --force-reinstall
-    
-    # Set environment variable for protobuf implementation
-    export PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python
-    
-    # Install Airflow dependencies for compatibility
-    pip install apache-airflow==3.0.1 \
-        apache-airflow-providers-cncf-kubernetes>=6.0.0 \
-        pendulum>=2.0.0 \
-        --no-deps
-    
-    # Create Jupyter config directory
-    mkdir -p /home/jovyan/.jupyter
-    
-    # Create configuration file for Airflow processor
-    cp /elyra-config/jupyter_config.py /home/jovyan/.jupyter/jupyter_config.py
-    
-    # Fix permissions for the config file
-    chmod 644 /home/jovyan/.jupyter/jupyter_config.py
-    chown jovyan:users /home/jovyan/.jupyter/jupyter_config.py
-    
     # Create directories for metadata
-    mkdir -p /home/jovyan/.local/share/jupyter/metadata/runtimes/
     mkdir -p /home/jovyan/.local/share/jupyter/metadata/component-catalogs/
-    mkdir -p /home/jovyan/.local/share/jupyter/metadata/templates/airflow3/
     
-    # Create Airflow 3.0 compatible template file
-    cp /elyra-airflow3-config/airflow_template.jinja2 /home/jovyan/.local/share/jupyter/metadata/templates/airflow3/airflow3_template.jinja2
+    # Create the Airflow package catalog using the CLI tool
+    echo "Creating Airflow package catalog..."
+    elyra-metadata create component-catalogs \
+      --schema_name=airflow-package-catalog \
+      --name="airflow-1-10-15" \
+      --display_name="Apache Airflow 1.10.15 Components" \
+      --description="Apache Airflow 1.10.15 operators and components" \
+      --runtime_type="APACHE_AIRFLOW" \
+      --categories="Core packages" \
+      --airflow_package_download_url="https://files.pythonhosted.org/packages/f0/3a/f5ce74b2bdbbe59c925bb3398ec0781b66a64b8a23e2f6adc7ab9f1005d9/apache_airflow-1.10.15-py2.py3-none-any.whl" \
+      --search_contrib=true
     
-    # Create the Airflow runtime configuration with fixed properties
-    cat > /home/jovyan/.local/share/jupyter/metadata/runtimes/airflow-runtime.json << 'EOF'
-    {
-      "display_name": "Apache Airflow 3.0",
-      "metadata": {
-        "runtime_type": "APACHE_AIRFLOW",
-        "airflow_version": "3.0.1",
-        "airflow_url": "http://airflow-webserver.airflow-new.svc.cluster.local:8080",
-        "api_endpoint": "http://airflow-webserver.airflow-new.svc.cluster.local:8080/api/v1",
-        "github_api_endpoint": "https://api.github.com",
-        "github_repo": "victorfonseca/elyra-poc",
-        "github_branch": "main",
-        "github_repo_token": "YOUR_TOKEN",
-        "cos_endpoint": "http://minio.minio-system.svc.cluster.local:9000",
-        "cos_bucket": "elyra-airflow",
-        "cos_username": "minio",
-        "cos_password": "minio123",
-        "template_directory": "/home/jovyan/.local/share/jupyter/metadata/templates/airflow3/",
-        "template_file": "airflow3_template.jinja2",
-        "namespace": "airflow-new"
-      },
-      "schema_name": "airflow"
-    }
-    EOF
-    
-    # Create the component catalog
-    cat > /home/jovyan/.local/share/jupyter/metadata/component-catalogs/airflow-k8s-components.json << EOF
-    {
-      "display_name": "Kubernetes Airflow 3.0 Components",
-      "metadata": {
-        "runtime_type": "APACHE_AIRFLOW",
-        "categories": ["Kubernetes"],
-        "paths": ["/tmp/airflow_components.json"],
-        "base_path": ""
-      },
-      "schema_name": "local-file-catalog"
-    }
-    EOF
-    
-    # Copy components file
-    cp /elyra-config/airflow_component_catalog.json /tmp/airflow_components.json
+    # List catalogs to verify
+    echo "Verifying catalog was created:"
+    elyra-metadata list component-catalogs
     
     # Fix permissions
     chown -R jovyan:users /home/jovyan/.local/share/jupyter/metadata/
-    chown -R jovyan:users /home/jovyan/.jupyter/
     
-    echo "Elyra configuration completed successfully"
-  post-process-dag-airflow3.sh: |
-    #!/bin/bash
-    
-    # Set up log file
-    LOG_FILE="/tmp/dag-processor.log"
-    echo "Starting Airflow 3.0 post-processing script at $(date)" > $LOG_FILE
-
-    # Create the output directory with proper permissions
-    mkdir -p /opt/airflow/dags/elyra_generated
-    chmod 777 /opt/airflow/dags/elyra_generated
-
-    # Set the Airflow namespace to use
-    AIRFLOW_NAMESPACE="${AIRFLOW_NAMESPACE:-airflow-new}"
-    echo "$(date) - Using Airflow namespace: $AIRFLOW_NAMESPACE" >> $LOG_FILE
-
-    # Function to process a directory using the Python script
-    process_directory() {
-      local dir="$1"
-      echo "$(date) - Checking directory: $dir" >> $LOG_FILE
-      
-      if [ -d "$dir" ]; then
-        echo "Directory exists: $dir" >> $LOG_FILE
-        
-        # Run the Python compatibility checker
-        python3 /elyra-airflow3-config/compatibility_checker.py "$dir" --namespace "$AIRFLOW_NAMESPACE" --recursive >> $LOG_FILE 2>&1
-        
-        echo "$(date) - Processed directory: $dir" >> $LOG_FILE
-      else
-        echo "Directory does not exist: $dir" >> $LOG_FILE
-      fi
-    }
-
-    # Function to find git repos
-    find_git_repos() {
-      echo "$(date) - Searching for git repos" >> $LOG_FILE
-      find / -name .git -type d 2>/dev/null | while read gitdir; do
-        echo "Found git repo: $gitdir" >> $LOG_FILE
-        if [ -d "$gitdir/../tests/dags" ]; then
-          echo "Found tests/dags directory in repo: $gitdir/../tests/dags" >> $LOG_FILE
-          process_directory "$gitdir/../tests/dags"
-        fi
-      done
-    }
-
-    # Main loop
-    while true; do
-      echo "$(date) - Starting check cycle" >> $LOG_FILE
-      
-      # Check important directories
-      process_directory "/opt/airflow/dags"
-      process_directory "/opt/airflow/dags/elyra_generated"
-      process_directory "/opt/airflow/dags/repo/tests/dags"
-      
-      # Find git repos and check their dags directories
-      find_git_repos
-      
-      # Sleep before next check
-      echo "$(date) - Finished check cycle, sleeping for 60 seconds" >> $LOG_FILE
-      sleep 60
-    done
+    echo "Airflow catalog configuration completed successfully"
 ---
-# PersistentVolumeClaim for Elyra metadata (configurations)
+# PersistentVolumeClaim for Elyra data
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: elyra-metadata-pvc
+  name: elyra-data-pvc
+  namespace: elyra-system
 spec:
   accessModes:
     - ReadWriteOnce
   resources:
     requests:
-      storage: 1Gi
+      storage: 5Gi
 ---
 # PersistentVolumeClaim for Elyra work directory
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: elyra-work-pvc
+  namespace: elyra-system
 spec:
   accessModes:
     - ReadWriteOnce
@@ -250,43 +68,30 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: elyra-airflow3
+  name: elyra
+  namespace: elyra-system
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: elyra-airflow3
+      app: elyra
   template:
     metadata:
       labels:
-        app: elyra-airflow3
+        app: elyra
     spec:
       initContainers:
-      - name: init-elyra
-        image: elyra/elyra:3.15.0  
+      - name: init-catalogs
+        image: elyra/elyra:3.15.0
         command: ["/bin/bash", "-c"]
         args:
         - |
-          # Downgrade problematic packages first
-          pip install protobuf==3.20.3 --force-reinstall
-          
-          # Set environment variable for protobuf implementation
-          export PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python
-          
-          # Install Airflow dependencies for compatibility
-          pip install apache-airflow==3.0.1 \
-              apache-airflow-providers-cncf-kubernetes>=6.0.0 \
-              pendulum>=2.0.0 \
-              --no-deps
-          
-          # Run the patch script
-          /elyra-config/patch-elyra.sh
+          echo "Running component catalog setup script..."
+          /scripts/setup-catalog.sh
         volumeMounts:
-        - name: elyra-config
-          mountPath: /elyra-config
-        - name: elyra-airflow3-config
-          mountPath: /elyra-airflow3-config
-        - name: elyra-metadata
+        - name: elyra-metadata-scripts
+          mountPath: /scripts
+        - name: elyra-data
           mountPath: /home/jovyan/.local
       containers:
       - name: elyra
@@ -297,21 +102,20 @@ spec:
         - name: JUPYTER_ENABLE_LAB
           value: "yes"
         - name: JUPYTER_TOKEN
-          value: ""
-        - name: JUPYTER_PASSWORD
-          value: ""
-        - name: PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION
-          value: "python"
-        - name: AIRFLOW_NAMESPACE
-          value: "airflow-new"
-        command: ["jupyter", "lab", "--ip=0.0.0.0", "--port=8888", "--no-browser", "--allow-root", "--NotebookApp.token=''", "--NotebookApp.password=''"]
+          value: "dGf7Hs9pKl2Mn6Qw3rT5yUi8oP1aZ0bX"
+        command: ["jupyter", "lab", "--ip=0.0.0.0", "--port=8888", "--no-browser", "--allow-root"]
         volumeMounts:
-        - name: elyra-metadata
+        - name: elyra-data
           mountPath: /home/jovyan/.local
         - name: elyra-work
           mountPath: /home/jovyan/work
-        - name: airflow-dags
-          mountPath: /opt/airflow/dags
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "4Gi"
+            cpu: "2"
         readinessProbe:
           httpGet:
             path: /lab
@@ -324,54 +128,26 @@ spec:
             port: 8888
           initialDelaySeconds: 30
           periodSeconds: 10
-      - name: dag-processor
-        image: python:3.9-alpine
-        command: ["/bin/sh", "-c"]
-        args:
-        - |
-          apk add --no-cache bash sed grep findutils git
-          echo "Starting DAG post-processor"
-          chmod 777 /opt/airflow/dags
-          cp /elyra-airflow3-config/compatibility_checker.py /tmp/
-          chmod +x /tmp/compatibility_checker.py
-          /bin/bash /elyra-config/post-process-dag-airflow3.sh
-        env:
-        - name: AIRFLOW_NAMESPACE
-          value: "airflow-new"
-        volumeMounts:
-        - name: elyra-config
-          mountPath: /elyra-config
-        - name: elyra-airflow3-config
-          mountPath: /elyra-airflow3-config
-        - name: elyra-work
-          mountPath: /home/jovyan/work
-        - name: airflow-dags
-          mountPath: /opt/airflow/dags
       volumes:
-      - name: elyra-config
+      - name: elyra-metadata-scripts
         configMap:
-          name: elyra-config
+          name: elyra-metadata-script
           defaultMode: 0755
-      - name: elyra-airflow3-config
-        configMap:
-          name: elyra-airflow3-config
-          defaultMode: 0755
-      - name: elyra-metadata
+      - name: elyra-data
         persistentVolumeClaim:
-          claimName: elyra-metadata-pvc
+          claimName: elyra-data-pvc
       - name: elyra-work
         persistentVolumeClaim:
           claimName: elyra-work-pvc
-      - name: airflow-dags
-        emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: elyra-airflow3
+  name: elyra
+  namespace: elyra-system
 spec:
   selector:
-    app: elyra-airflow3
+    app: elyra
   ports:
   - port: 8888
     targetPort: 8888

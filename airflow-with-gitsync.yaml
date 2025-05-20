@@ -1,0 +1,20 @@
+# airflow-with-gitsync.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: git-sync-config
+  namespace: airflow-elyra
+data:
+  git-sync.sh: |
+    #!/bin/sh
+    # Initial clone
+    git clone --single-branch --branch main https://github.com/victorfonseca/elyra-poc.git /tmp/repo
+    cp -r /tmp/repo/tests/dags/* /opt/airflow/dags/
+    
+    # Continuous sync every 60 seconds
+    while true; do
+      echo "Syncing repository..."
+      cd /tmp/repo && git pull
+      cp -r /tmp/repo/tests/dags/* /opt/airflow/dags/
+      sleep 60
+    done
