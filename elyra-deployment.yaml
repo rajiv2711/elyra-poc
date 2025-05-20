@@ -45,6 +45,15 @@ data:
     #!/bin/bash
     set -e
     
+    # Downgrade problematic packages first
+    pip install protobuf==3.20.3 --force-reinstall
+    
+    # Set environment variable for protobuf implementation
+    export PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python
+    
+    # Install Airflow dependencies with pinned versions
+    pip install apache-airflow==2.10.5 apache-airflow-providers-cncf-kubernetes>=2.0.0 --no-deps
+    
     # Find the Elyra airflow processor file
     PROCESSOR_FILE=$(find /opt/conda/lib/python*/site-packages/elyra/pipeline/airflow -name "processor*.py" | head -n 1)
     
@@ -70,6 +79,7 @@ data:
     
     # Create runtime configuration directory
     mkdir -p /home/jovyan/.local/share/jupyter/metadata/runtimes/
+    mkdir -p /home/jovyan/.local/share/jupyter/metadata/component-catalogs/
     
     # Create runtime configuration
     cat > /home/jovyan/.local/share/jupyter/metadata/runtimes/airflow-runtime.json << 'EOF'
@@ -91,15 +101,25 @@ data:
     }
     EOF
     
-    # Create component catalog directory
-    mkdir -p /opt/conda/share/jupyter/metadata/runtime-images/
+    # Save the component catalog with name directly
+    cat > /home/jovyan/.local/share/jupyter/metadata/component-catalogs/airflow-k8s-components.json << EOF
+    {
+      "display_name": "Kubernetes Airflow Components",
+      "metadata": {
+        "runtime_type": "APACHE_AIRFLOW",
+        "categories": ["Kubernetes"],
+        "paths": ["/tmp/airflow_components.json"],
+        "base_path": ""
+      },
+      "schema_name": "local-file-catalog"
+    }
+    EOF
     
-    # Copy component catalog
-    cp /elyra-config/airflow_component_catalog.json /opt/conda/share/jupyter/metadata/runtime-images/
+    # Copy the components file to the location referenced in the metadata
+    cp /elyra-config/airflow_component_catalog.json /tmp/airflow_components.json
     
     # Fix permissions
     chown -R jovyan:users /home/jovyan/.local/share/jupyter/metadata/
-    chown -R jovyan:users /opt/conda/share/jupyter/metadata/
     
     echo "Elyra configuration completed successfully"
   post-process-dag.sh: |
@@ -162,6 +182,30 @@ data:
       sleep 30
     done
 ---
+# PersistentVolumeClaim for Elyra metadata (configurations)
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: elyra-metadata-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+# PersistentVolumeClaim for Elyra work directory
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: elyra-work-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -178,23 +222,29 @@ spec:
     spec:
       initContainers:
       - name: init-elyra
-        image: elyra/elyra:3.15.0  # Using the known working version
+        image: elyra/elyra:3.15.0  
         command: ["/bin/bash", "-c"]
         args:
         - |
-          # Install Airflow dependencies
-          pip install apache-airflow==2.10.5 apache-airflow-providers-cncf-kubernetes>=2.0.0
+          # Downgrade problematic packages first
+          pip install protobuf==3.20.3 --force-reinstall
+          
+          # Set environment variable for protobuf implementation
+          export PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python
+          
+          # Install Airflow dependencies with pinned versions
+          pip install apache-airflow==2.10.5 apache-airflow-providers-cncf-kubernetes>=2.0.0 --no-deps
           
           # Run the patch script
           /elyra-config/patch-elyra.sh
         volumeMounts:
         - name: elyra-config
           mountPath: /elyra-config
-        - name: elyra-home
-          mountPath: /home/jovyan
+        - name: elyra-metadata
+          mountPath: /home/jovyan/.local
       containers:
       - name: elyra
-        image: elyra/elyra:3.15.0  # Using the known working version
+        image: elyra/elyra:3.15.0
         ports:
         - containerPort: 8888
         env:
@@ -204,10 +254,12 @@ spec:
           value: ""
         - name: JUPYTER_PASSWORD
           value: ""
+        - name: PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION
+          value: "python"
         command: ["jupyter", "lab", "--ip=0.0.0.0", "--port=8888", "--no-browser", "--allow-root", "--NotebookApp.token=''", "--NotebookApp.password=''"]
         volumeMounts:
-        - name: elyra-home
-          mountPath: /home/jovyan
+        - name: elyra-metadata
+          mountPath: /home/jovyan/.local
         - name: elyra-work
           mountPath: /home/jovyan/work
         - name: airflow-dags
@@ -245,10 +297,12 @@ spec:
         configMap:
           name: elyra-config
           defaultMode: 0755
-      - name: elyra-home
-        emptyDir: {}
+      - name: elyra-metadata
+        persistentVolumeClaim:
+          claimName: elyra-metadata-pvc
       - name: elyra-work
-        emptyDir: {}
+        persistentVolumeClaim:
+          claimName: elyra-work-pvc
       - name: airflow-dags
         emptyDir: {}
 ---
