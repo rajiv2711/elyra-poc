@@ -24,7 +24,7 @@ data:
           "description": "Kubernetes Volume for Pod Operator",
           "metadata": {
             "runtime_type": "APACHE_AIRFLOW",
-            "import_statement": "from airflow.kubernetes.volume import Volume",
+            "import_statement": "from kubernetes.client.models import V1Volume as Volume",
             "class_name": "Volume"
           }
         },
@@ -35,7 +35,7 @@ data:
           "description": "Kubernetes Volume Mount for Pod Operator",
           "metadata": {
             "runtime_type": "APACHE_AIRFLOW",
-            "import_statement": "from airflow.kubernetes.volume_mount import VolumeMount",
+            "import_statement": "from kubernetes.client.models import V1VolumeMount as VolumeMount",
             "class_name": "VolumeMount"
           }
         }
@@ -102,6 +102,65 @@ data:
     chown -R jovyan:users /opt/conda/share/jupyter/metadata/
     
     echo "Elyra configuration completed successfully"
+  post-process-dag.sh: |
+    #!/bin/bash
+    
+    # Set up log file
+    LOG_FILE="/tmp/dag-processor.log"
+    echo "Starting post-processing script at $(date)" > $LOG_FILE
+    
+    # Function to process a DAG file
+    process_dag() {
+      local dagfile="$1"
+      echo "$(date) - Processing $dagfile" >> $LOG_FILE
+      
+      # Check if already processed
+      if grep -q "# PROCESSED_BY_SCRIPT" "$dagfile"; then
+        echo "$(date) - File already processed: $dagfile" >> $LOG_FILE
+        return
+      fi
+      
+      # Make a backup
+      cp "$dagfile" "${dagfile}.bak"
+      
+      # Fix imports (just in case the component catalog didn't work)
+      sed -i 's/from airflow\.contrib\.operators\.kubernetes_pod_operator import KubernetesPodOperator/from airflow.providers.cncf.kubernetes.operators.pod import KubernetesPodOperator/g' "$dagfile"
+      sed -i 's/from airflow\.contrib\.kubernetes\.volume_mount import VolumeMount/from kubernetes.client.models import V1VolumeMount as VolumeMount/g' "$dagfile"
+      sed -i 's/from airflow\.contrib\.kubernetes\.volume import Volume/from kubernetes.client.models import V1Volume as Volume/g' "$dagfile"
+      
+      # Fix namespace
+      sed -i 's/namespace="default"/namespace="airflow"/g' "$dagfile"
+      
+      # Fix config_file
+      sed -i 's/config_file="None"/config_file=None/g' "$dagfile"
+      
+      # Mark as processed
+      sed -i '1s/^/# PROCESSED_BY_SCRIPT\n/' "$dagfile"
+      
+      echo "$(date) - Processing complete for $dagfile" >> $LOG_FILE
+    }
+    
+    # Main loop
+    echo "$(date) - Starting dag processor watch loop" >> $LOG_FILE
+    
+    # First, process any existing files
+    echo "$(date) - Processing existing files" >> $LOG_FILE
+    find /home/jovyan/work -name "weather-dataprocessing-*.py" | while read dagfile; do
+      process_dag "$dagfile"
+    done
+    
+    # Monitor git repo directory for new files
+    WATCH_DIR="/opt/airflow/dags/repo/tests/dags"
+    mkdir -p "$WATCH_DIR"
+    
+    echo "$(date) - Watching $WATCH_DIR for new files" >> $LOG_FILE
+    
+    while true; do
+      find "$WATCH_DIR" -name "weather-dataprocessing-*.py" -mmin -1 | while read dagfile; do
+        process_dag "$dagfile"
+      done
+      sleep 30
+    done
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -119,7 +178,7 @@ spec:
     spec:
       initContainers:
       - name: init-elyra
-        image: elyra/elyra:3.15.0
+        image: elyra/elyra:3.15.0  # Using the known working version
         command: ["/bin/bash", "-c"]
         args:
         - |
@@ -135,7 +194,7 @@ spec:
           mountPath: /home/jovyan
       containers:
       - name: elyra
-        image: elyra/elyra:3.15.0
+        image: elyra/elyra:3.15.0  # Using the known working version
         ports:
         - containerPort: 8888
         env:
@@ -151,6 +210,8 @@ spec:
           mountPath: /home/jovyan
         - name: elyra-work
           mountPath: /home/jovyan/work
+        - name: airflow-dags
+          mountPath: /opt/airflow/dags
         readinessProbe:
           httpGet:
             path: /lab
@@ -163,6 +224,22 @@ spec:
             port: 8888
           initialDelaySeconds: 30
           periodSeconds: 10
+      - name: dag-processor
+        image: alpine:latest
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+          apk add --no-cache bash sed grep findutils
+          echo "Starting DAG post-processor"
+          chmod +x /elyra-config/post-process-dag.sh
+          /elyra-config/post-process-dag.sh
+        volumeMounts:
+        - name: elyra-config
+          mountPath: /elyra-config
+        - name: elyra-work
+          mountPath: /home/jovyan/work
+        - name: airflow-dags
+          mountPath: /opt/airflow/dags
       volumes:
       - name: elyra-config
         configMap:
@@ -171,6 +248,8 @@ spec:
       - name: elyra-home
         emptyDir: {}
       - name: elyra-work
+        emptyDir: {}
+      - name: airflow-dags
         emptyDir: {}
 ---
 apiVersion: v1
