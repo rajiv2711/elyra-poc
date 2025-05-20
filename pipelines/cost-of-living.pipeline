@@ -9,7 +9,7 @@
       "id": "primary",
       "nodes": [
         {
-          "id": "335f3d20-ee65-4f99-87ea-27470f214004",
+          "id": "71211e52-fe23-490a-a481-c1128c73e361",
           "type": "execution_node",
           "op": "execute-python-node",
           "app_data": {
@@ -17,35 +17,19 @@
               "dependencies": [],
               "include_subdirectories": false,
               "outputs": [],
-              "env_vars": [
-                {
-                  "env_var": "ELYRA_RUN_NAME"
-                },
-                {
-                  "env_var": "MINIO_ENDPOINT"
-                },
-                {
-                  "env_var": "AWS_ACCESS_KEY_ID"
-                },
-                {
-                  "env_var": "AWS_SECRET_ACCESS_KEY"
-                },
-                {
-                  "env_var": "MINIO_BUCKET"
-                }
-              ],
+              "env_vars": [],
               "kubernetes_pod_annotations": [],
               "kubernetes_pod_labels": [],
               "kubernetes_secrets": [],
               "kubernetes_shared_mem_size": {},
               "kubernetes_tolerations": [],
               "mounted_volumes": [],
-              "filename": "01-generate-data-simple.py",
+              "filename": "cost_data_fetcher.py",
               "runtime_image": "continuumio/anaconda3@sha256:a2816acd3acda208d92e0bf6c11eb41fda9009ea20f24e123dbf84bb4bd4c4b8"
             },
             "label": "",
             "ui_data": {
-              "label": "01-generate-data-simple.py",
+              "label": "cost_data_fetcher.py",
               "image": "/static/elyra/python.svg",
               "x_pos": 50,
               "y_pos": 50,
@@ -82,7 +66,7 @@
           ]
         },
         {
-          "id": "1ea4dc24-ac2f-465e-bb8d-529eb9647f4c",
+          "id": "53136309-0b4b-496d-ab5c-4abf6c8c0264",
           "type": "execution_node",
           "op": "execute-python-node",
           "app_data": {
@@ -90,35 +74,19 @@
               "dependencies": [],
               "include_subdirectories": false,
               "outputs": [],
-              "env_vars": [
-                {
-                  "env_var": "ELYRA_RUN_NAME"
-                },
-                {
-                  "env_var": "MINIO_ENDPOINT"
-                },
-                {
-                  "env_var": "AWS_ACCESS_KEY_ID"
-                },
-                {
-                  "env_var": "AWS_SECRET_ACCESS_KEY"
-                },
-                {
-                  "env_var": "MINIO_BUCKET"
-                }
-              ],
+              "env_vars": [],
               "kubernetes_pod_annotations": [],
               "kubernetes_pod_labels": [],
               "kubernetes_secrets": [],
               "kubernetes_shared_mem_size": {},
               "kubernetes_tolerations": [],
               "mounted_volumes": [],
-              "filename": "02-process-data-simple.py",
+              "filename": "cost_data_visualizer.py",
               "runtime_image": "continuumio/anaconda3@sha256:a2816acd3acda208d92e0bf6c11eb41fda9009ea20f24e123dbf84bb4bd4c4b8"
             },
             "label": "",
             "ui_data": {
-              "label": "02-process-data-simple.py",
+              "label": "cost_data_visualizer.py",
               "image": "/static/elyra/python.svg",
               "x_pos": 291,
               "y_pos": 50,
@@ -139,88 +107,8 @@
               },
               "links": [
                 {
-                  "id": "e8449cd7-1e9d-489d-a73e-35b811784b3e",
-                  "node_id_ref": "335f3d20-ee65-4f99-87ea-27470f214004",
-                  "port_id_ref": "outPort"
-                }
-              ]
-            }
-          ],
-          "outputs": [
-            {
-              "id": "outPort",
-              "app_data": {
-                "ui_data": {
-                  "cardinality": {
-                    "min": 0,
-                    "max": -1
-                  },
-                  "label": "Output Port"
-                }
-              }
-            }
-          ]
-        },
-        {
-          "id": "0246f672-00c6-49bd-9668-a43f60261abd",
-          "type": "execution_node",
-          "op": "execute-python-node",
-          "app_data": {
-            "component_parameters": {
-              "dependencies": [],
-              "include_subdirectories": false,
-              "outputs": [],
-              "env_vars": [
-                {
-                  "env_var": "ELYRA_RUN_NAME"
-                },
-                {
-                  "env_var": "MINIO_ENDPOINT"
-                },
-                {
-                  "env_var": "AWS_ACCESS_KEY_ID"
-                },
-                {
-                  "env_var": "AWS_SECRET_ACCESS_KEY"
-                },
-                {
-                  "env_var": "MINIO_BUCKET"
-                }
-              ],
-              "kubernetes_pod_annotations": [],
-              "kubernetes_pod_labels": [],
-              "kubernetes_secrets": [],
-              "kubernetes_shared_mem_size": {},
-              "kubernetes_tolerations": [],
-              "mounted_volumes": [],
-              "filename": "03-visualize-data-simple.py",
-              "runtime_image": "continuumio/anaconda3@sha256:a2816acd3acda208d92e0bf6c11eb41fda9009ea20f24e123dbf84bb4bd4c4b8"
-            },
-            "label": "",
-            "ui_data": {
-              "label": "03-visualize-data-simple.py",
-              "image": "/static/elyra/python.svg",
-              "x_pos": 530,
-              "y_pos": 50,
-              "description": "Run Python script"
-            }
-          },
-          "inputs": [
-            {
-              "id": "inPort",
-              "app_data": {
-                "ui_data": {
-                  "cardinality": {
-                    "min": 0,
-                    "max": -1
-                  },
-                  "label": "Input Port"
-                }
-              },
-              "links": [
-                {
-                  "id": "1037dddd-f228-4a97-b238-1c0ef20a6bbf",
-                  "node_id_ref": "1ea4dc24-ac2f-465e-bb8d-529eb9647f4c",
+                  "id": "673f7eb8-33fe-4075-8daf-746f8f3b72c9",
+                  "node_id_ref": "71211e52-fe23-490a-a481-c1128c73e361",
                   "port_id_ref": "outPort"
                 }
               ]
@@ -249,15 +137,28 @@
         "version": 8,
         "runtime_type": "APACHE_AIRFLOW",
         "properties": {
-          "name": "untitled",
+          "name": "cost-of-living",
           "runtime": "Apache Airflow",
           "pipeline_defaults": {
+            "kubernetes_shared_mem_size": {},
             "kubernetes_pod_annotations": [],
             "kubernetes_pod_labels": [],
-            "kubernetes_shared_mem_size": {},
-            "kubernetes_tolerations": [],
             "mounted_volumes": [],
-            "env_vars": [],
+            "kubernetes_tolerations": [],
+            "env_vars": [
+              {
+                "env_var": "MINIO_ENDPOINT",
+                "value": "minio.minio-system.svc.cluster.local:9000"
+              },
+              {
+                "env_var": "AWS_ACCESS_KEY_ID",
+                "value": "minio"
+              },
+              {
+                "env_var": "AWS_SECRET_ACCESS_KEY",
+                "value": "minio123"
+              }
+            ],
             "kubernetes_secrets": []
           }
         }
