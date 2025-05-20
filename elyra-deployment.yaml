@@ -91,7 +91,7 @@ data:
         "github_api_endpoint": "https://api.github.com",
         "github_repo": "victorfonseca/elyra-poc",
         "github_branch": "main",
-        "github_repo_token": "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",
+        "github_repo_token": "YOUR_TOKEN",
         "cos_endpoint": "http://minio.minio-system.svc.cluster.local:9000",
         "cos_bucket": "elyra-airflow",
         "cos_username": "minio",
