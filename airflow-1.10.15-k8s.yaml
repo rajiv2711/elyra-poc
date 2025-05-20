@@ -4,6 +4,37 @@ kind: Namespace
 metadata:
   name: airflow-elyra
 ---
+# ServiceAccount and RBAC Resources
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: airflow
+  namespace: airflow-elyra
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: airflow-role
+  namespace: airflow-elyra
+rules:
+- apiGroups: [""]
+  resources: ["pods", "pods/log"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: airflow-rolebinding
+  namespace: airflow-elyra
+subjects:
+- kind: ServiceAccount
+  name: airflow
+  namespace: airflow-elyra
+roleRef:
+  kind: Role
+  name: airflow-role
+  apiGroup: rbac.authorization.k8s.io
+---
 # ConfigMap for Airflow configuration
 apiVersion: v1
 kind: ConfigMap
@@ -29,26 +60,43 @@ data:
     job_heartbeat_sec = 5
     scheduler_heartbeat_sec = 5
 ---
-# Git-sync ConfigMap (from airflow-with-gitsync.yaml)
+# Git-sync ConfigMap with improved script
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: git-sync-config
   namespace: airflow-elyra
 data:
-  # Original script from airflow-with-gitsync.yaml
   git-sync.sh: |
     #!/bin/sh
     # Initial clone
     git clone --single-branch --branch main https://github.com/victorfonseca/elyra-poc.git /tmp/repo
     mkdir -p /opt/airflow/dags
-    cp -r /tmp/repo/tests/dags/* /opt/airflow/dags/
+    
+    # Initial sync - only if directory exists
+    if [ -d "/tmp/repo/tests/dags" ]; then
+      cp -r /tmp/repo/tests/dags/* /opt/airflow/dags/
+      echo "Initial DAGs synchronized successfully"
+    else
+      echo "Warning: /tmp/repo/tests/dags directory not found during initial sync"
+    fi
     
     # Continuous sync every 60 seconds
     while true; do
       echo "Syncing repository..."
       cd /tmp/repo && git pull
-      cp -r /tmp/repo/tests/dags/* /opt/airflow/dags/
+      
+      # Clean destination directory first (preserve __pycache__)
+      find /opt/airflow/dags -type f -name "*.py" -delete
+      
+      # Copy only if the directory exists
+      if [ -d "/tmp/repo/tests/dags" ]; then
+        cp -r /tmp/repo/tests/dags/* /opt/airflow/dags/
+        echo "DAGs synchronized successfully"
+      else
+        echo "Warning: /tmp/repo/tests/dags directory not found"
+      fi
+      
       sleep 60
     done
 ---
@@ -60,7 +108,7 @@ metadata:
   namespace: airflow-elyra
 spec:
   accessModes:
-    - ReadWriteOnce  # ReadWriteMany if your cluster supports it
+    - ReadWriteMany
   resources:
     requests:
       storage: 1Gi
@@ -123,6 +171,7 @@ metadata:
 spec:
   template:
     spec:
+      serviceAccountName: airflow  # Add service account
       restartPolicy: Never
       containers:
       - name: airflow-init
@@ -153,6 +202,7 @@ spec:
       labels:
         app: airflow-webserver
     spec:
+      serviceAccountName: airflow  # Add service account
       containers:
       - name: airflow-webserver
         image: apache/airflow:1.10.15
@@ -208,6 +258,7 @@ spec:
       labels:
         app: airflow-scheduler
     spec:
+      serviceAccountName: airflow  # Add service account
       containers:
       - name: airflow-scheduler
         image: apache/airflow:1.10.15
