@@ -33,7 +33,7 @@ op_71211e52_fe23_490a_a481_c1128c73e361 = KubernetesPodOperator(
     ],
     task_id="cost_data_fetcher",
     env_vars={
-        "MINIO_ENDPOINT": "MINIO_ENDPOINT",
+        "MINIO_ENDPOINT": "minio.minio-system.svc.cluster.local:9000",
         "AWS_ACCESS_KEY_ID": "minio",
         "AWS_SECRET_ACCESS_KEY": "minio123",
         "ELYRA_RUNTIME_ENV": "airflow",
@@ -65,7 +65,7 @@ op_53136309_0b4b_496d_ab5c_4abf6c8c0264 = KubernetesPodOperator(
     ],
     task_id="cost_data_visualizer",
     env_vars={
-        "MINIO_ENDPOINT": "MINIO_ENDPOINT",
+        "MINIO_ENDPOINT": "minio.minio-system.svc.cluster.local:9000",
         "AWS_ACCESS_KEY_ID": "minio",
         "AWS_SECRET_ACCESS_KEY": "minio123",
         "ELYRA_RUNTIME_ENV": "airflow",
