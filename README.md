@@ -66,3 +66,8 @@ kubectl get namespace airflow-elyra
 - [Apache Airflow Docs](https://airflow.apache.org/docs/)
 - [Elyra Docs](https://elyra.readthedocs.io/)
 - See `AIRFLOW.md` and `Airflow DAG Info.md` in this repo for detailed guides
+
+### Additional Guides
+- [MinIO Deployment and UI Access Guide](minio-deployment.md): Step-by-step instructions to deploy MinIO on Kubernetes, including manifest usage, service exposure, and accessing the MinIO web UI for bucket management.
+- [Airflow Kubernetes Operator with S3 DAG Storage: Architecture Diagram](airflow-k8s-s3-diagram.md): Explains how Airflow components interact with S3/MinIO for DAG storage, including the use of sidecar containers and shared volumes.
+- [Using a Custom Docker Image with Airflow KubernetesPodOperator](airflow-custom-image-diagram.md): Details on customizing Docker images for Airflow tasks, covering dependency installation, environment variables, credentials, and runtime configuration.
