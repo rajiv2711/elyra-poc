@@ -46,7 +46,7 @@ op_335f3d20_ee65_4f99_87ea_27470f214004 = KubernetesPodOperator(
     labels={},
     tolerations=[],
     in_cluster=True,
-    config_file="None",
+    config_file=None,
     dag=dag,
 )
 
@@ -76,7 +76,7 @@ op_1ea4dc24_ac2f_465e_bb8d_529eb9647f4c = KubernetesPodOperator(
     labels={},
     tolerations=[],
     in_cluster=True,
-    config_file="None",
+    config_file=None,
     dag=dag,
 )
 
@@ -108,7 +108,7 @@ op_0246f672_00c6_49bd_9668_a43f60261abd = KubernetesPodOperator(
     labels={},
     tolerations=[],
     in_cluster=True,
-    config_file="None",
+    config_file=None,
     dag=dag,
 )
 
