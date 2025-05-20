@@ -1,5 +1,3 @@
-# airflow-3.0.1-simple-git.yaml
----
 # Airflow version
 airflowVersion: "3.0.1"
 
@@ -13,11 +11,15 @@ images:
     repository: registry.k8s.io/git-sync/git-sync
     tag: "v4.3.0"
     pullPolicy: IfNotPresent
+  statsd:
+    repository: quay.io/prometheus/statsd-exporter
+    tag: "v0.28.0"
+    pullPolicy: IfNotPresent
 
 # Executor type
 executor: "KubernetesExecutor"
 
-# Required JWT secret for Airflow 3.0 API server
+# Configuration
 config:
   core:
     dags_folder: /opt/airflow/dags/repo/tests/dags
@@ -28,6 +30,14 @@ config:
   kubernetes:
     worker_container_repository: apache/airflow
     worker_container_tag: "3.0.1"
+  logging:
+    logging_level: INFO
+  scheduler:
+    log_retention_days: 15
+    log_cleanup_frequency_minutes: 15
+  dagprocessor:
+    log_retention_days: 15
+    log_cleanup_frequency_minutes: 15
 
 # DAGs configuration
 dags:
@@ -51,6 +61,38 @@ logs:
   persistence:
     enabled: false
 
-# Disable problematic triggerer
+# Disable triggerer
 triggerer:
   enabled: false
+
+# Components resources configuration
+scheduler:
+  resources: {}
+
+# API Server - no specific resource requirements
+apiServer:
+  resources: {}
+
+# DAG Processor configuration
+dagProcessor:
+  enabled: true
+  resources: {}
+
+# StatSD configuration
+statsd:
+  enabled: true
+  resources: {}
+
+# Database configuration using PostgreSQL
+postgresql:
+  enabled: true
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+  persistence:
+    size: 8Gi
+    accessMode: ReadWriteOnce
+  image:
+    repository: bitnami/postgresql
+    tag: 16.1.0-debian-11-r15

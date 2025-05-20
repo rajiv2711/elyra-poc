@@ -1,0 +1,59 @@
+{
+    "components": [
+      {
+        "id": "airflow-kubernetes-pod-operator",
+        "type": "APACHE_AIRFLOW",
+        "display_name": "Kubernetes Pod Operator",
+        "description": "Executes a task in a Kubernetes Pod",
+        "metadata": {
+          "runtime_type": "APACHE_AIRFLOW",
+          "import_statement": "from airflow.providers.cncf.kubernetes.operators.pod import KubernetesPodOperator",
+          "class_name": "KubernetesPodOperator"
+        }
+      },
+      {
+        "id": "airflow-volume",
+        "type": "APACHE_AIRFLOW",
+        "display_name": "Kubernetes Volume",
+        "description": "Kubernetes Volume for Pod Operator",
+        "metadata": {
+          "runtime_type": "APACHE_AIRFLOW",
+          "import_statement": "from kubernetes.client.models import V1Volume as Volume",
+          "class_name": "Volume"
+        }
+      },
+      {
+        "id": "airflow-volume-mount",
+        "type": "APACHE_AIRFLOW",
+        "display_name": "Kubernetes Volume Mount",
+        "description": "Kubernetes Volume Mount for Pod Operator",
+        "metadata": {
+          "runtime_type": "APACHE_AIRFLOW",
+          "import_statement": "from kubernetes.client.models import V1VolumeMount as VolumeMount",
+          "class_name": "VolumeMount"
+        }
+      },
+      {
+        "id": "airflow-secret",
+        "type": "APACHE_AIRFLOW",
+        "display_name": "Kubernetes Secret",
+        "description": "Kubernetes Secret for Pod Operator",
+        "metadata": {
+          "runtime_type": "APACHE_AIRFLOW",
+          "import_statement": "from airflow.providers.cncf.kubernetes.secret import Secret",
+          "class_name": "Secret"
+        }
+      },
+      {
+        "id": "airflow-pendulum",
+        "type": "APACHE_AIRFLOW",
+        "display_name": "Pendulum DateTime",
+        "description": "Pendulum datetime library (replaces days_ago)",
+        "metadata": {
+          "runtime_type": "APACHE_AIRFLOW",
+          "import_statement": "import pendulum",
+          "class_name": "pendulum"
+        }
+      }
+    ]
+  }
