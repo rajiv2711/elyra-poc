@@ -12,7 +12,7 @@ args = {
 dag = DAG(
     "weather-dataprocessing-0520002613",
     default_args=args,
-    schedule_interval="@once",
+    schedule="@once",  # Changed from schedule_interval to schedule
     start_date=pendulum.datetime(2025, 5, 19, tz="UTC"),
     description="""
 Created with Elyra 3.15.0 pipeline editor using `weather-dataprocessing.pipeline`.
