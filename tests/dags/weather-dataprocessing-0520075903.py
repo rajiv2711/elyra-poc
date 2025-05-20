@@ -1,6 +1,6 @@
-from airflow.contrib.operators.kubernetes_pod_operator import KubernetesPodOperator
-from airflow.contrib.kubernetes.volume_mount import VolumeMount
-from airflow.contrib.kubernetes.volume import Volume
+from airflow.providers.cncf.kubernetes.operators.pod import KubernetesPodOperator
+from kubernetes.client.models import V1VolumeMount as VolumeMount
+from kubernetes.client.models import V1Volume as Volume
 from airflow.kubernetes.secret import Secret
 from airflow import DAG
 from airflow.utils.dates import days_ago
@@ -46,7 +46,7 @@ op_1bfb1881_65a3_496b_9110_2460c2a2ceb8 = KubernetesPodOperator(
     labels={},
     tolerations=[],
     in_cluster=True,
-    config_file="None",
+    config_file=None,
     dag=dag,
 )
 
@@ -76,7 +76,7 @@ op_83bd05aa_fa6a_4598_a3fb_f21dcb77e3e0 = KubernetesPodOperator(
     labels={},
     tolerations=[],
     in_cluster=True,
-    config_file="None",
+    config_file=None,
     dag=dag,
 )
 
@@ -108,7 +108,7 @@ op_d566e5e5_7c69_482b_a582_ff53057ffee5 = KubernetesPodOperator(
     labels={},
     tolerations=[],
     in_cluster=True,
-    config_file="None",
+    config_file=None,
     dag=dag,
 )
 
