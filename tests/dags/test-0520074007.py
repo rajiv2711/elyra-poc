@@ -25,7 +25,7 @@ Created with Elyra 3.15.0 pipeline editor using `test.pipeline`.
 
 op_87029935_2b84_4f25_8b29_2a165af4620d = KubernetesPodOperator(
     name="print_date",
-    namespace="airflow",
+    namespace="airflow-new",
     image="continuumio/anaconda3@sha256:a2816acd3acda208d92e0bf6c11eb41fda9009ea20f24e123dbf84bb4bd4c4b8",
     cmds=["sh", "-c"],
     arguments=[
@@ -33,7 +33,7 @@ op_87029935_2b84_4f25_8b29_2a165af4620d = KubernetesPodOperator(
     ],
     task_id="print_date",
     env_vars={
-        "ELYRA_RUNTIME_ENV": "airflow",
+        "ELYRA_RUNTIME_ENV": "airflow-new",
         "AWS_ACCESS_KEY_ID": "minio",
         "AWS_SECRET_ACCESS_KEY": "minio123",
         "ELYRA_ENABLE_PIPELINE_INFO": "True",
