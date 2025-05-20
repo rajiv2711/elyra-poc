@@ -1,9 +1,9 @@
-from airflow.contrib.operators.kubernetes_pod_operator import KubernetesPodOperator
-from airflow.contrib.kubernetes.volume_mount import VolumeMount
-from airflow.contrib.kubernetes.volume import Volume
-from airflow.kubernetes.secret import Secret
+from airflow.providers.cncf.kubernetes.operators.pod import KubernetesPodOperator
+from kubernetes.client.models import V1VolumeMount as VolumeMount
+from kubernetes.client.models import V1Volume as Volume
+from airflow.providers.cncf.kubernetes.secret import Secret
+import pendulum
 from airflow import DAG
-from airflow.utils.dates import days_ago
 
 args = {
     "project_id": "weather-dataprocessing-0520095026",
@@ -12,8 +12,8 @@ args = {
 dag = DAG(
     "weather-dataprocessing-0520095026",
     default_args=args,
-    schedule_interval="@once",
-    start_date=days_ago(1),
+    schedule="@once",
+    start_date=pendulum.datetime(2025, 5, 19, tz="UTC"),
     description="""
 Created with Elyra 3.15.0 pipeline editor using `weather-dataprocessing.pipeline`.
     """,
@@ -25,7 +25,7 @@ Created with Elyra 3.15.0 pipeline editor using `weather-dataprocessing.pipeline
 
 op_1bfb1881_65a3_496b_9110_2460c2a2ceb8 = KubernetesPodOperator(
     name="01_generate_data_simple",
-    namespace="airflow",
+    namespace="airflow-new",
     image="continuumio/anaconda3@sha256:a2816acd3acda208d92e0bf6c11eb41fda9009ea20f24e123dbf84bb4bd4c4b8",
     cmds=["sh", "-c"],
     arguments=[
@@ -33,7 +33,7 @@ op_1bfb1881_65a3_496b_9110_2460c2a2ceb8 = KubernetesPodOperator(
     ],
     task_id="01_generate_data_simple",
     env_vars={
-        "ELYRA_RUNTIME_ENV": "airflow",
+        "ELYRA_RUNTIME_ENV": "airflow-new",
         "AWS_ACCESS_KEY_ID": "minio",
         "AWS_SECRET_ACCESS_KEY": "minio123",
         "ELYRA_ENABLE_PIPELINE_INFO": "True",
@@ -46,7 +46,7 @@ op_1bfb1881_65a3_496b_9110_2460c2a2ceb8 = KubernetesPodOperator(
     labels={},
     tolerations=[],
     in_cluster=True,
-    config_file="None",
+    config_file=None,
     dag=dag,
 )
 
@@ -55,7 +55,7 @@ op_1bfb1881_65a3_496b_9110_2460c2a2ceb8 = KubernetesPodOperator(
 
 op_83bd05aa_fa6a_4598_a3fb_f21dcb77e3e0 = KubernetesPodOperator(
     name="02_process_data_simple",
-    namespace="airflow",
+    namespace="airflow-new",
     image="continuumio/anaconda3@sha256:a2816acd3acda208d92e0bf6c11eb41fda9009ea20f24e123dbf84bb4bd4c4b8",
     cmds=["sh", "-c"],
     arguments=[
@@ -63,7 +63,7 @@ op_83bd05aa_fa6a_4598_a3fb_f21dcb77e3e0 = KubernetesPodOperator(
     ],
     task_id="02_process_data_simple",
     env_vars={
-        "ELYRA_RUNTIME_ENV": "airflow",
+        "ELYRA_RUNTIME_ENV": "airflow-new",
         "AWS_ACCESS_KEY_ID": "minio",
         "AWS_SECRET_ACCESS_KEY": "minio123",
         "ELYRA_ENABLE_PIPELINE_INFO": "True",
@@ -76,7 +76,7 @@ op_83bd05aa_fa6a_4598_a3fb_f21dcb77e3e0 = KubernetesPodOperator(
     labels={},
     tolerations=[],
     in_cluster=True,
-    config_file="None",
+    config_file=None,
     dag=dag,
 )
 
@@ -87,7 +87,7 @@ op_83bd05aa_fa6a_4598_a3fb_f21dcb77e3e0 << op_1bfb1881_65a3_496b_9110_2460c2a2ce
 
 op_d566e5e5_7c69_482b_a582_ff53057ffee5 = KubernetesPodOperator(
     name="03_visualize_data_simple",
-    namespace="airflow",
+    namespace="airflow-new",
     image="continuumio/anaconda3@sha256:a2816acd3acda208d92e0bf6c11eb41fda9009ea20f24e123dbf84bb4bd4c4b8",
     cmds=["sh", "-c"],
     arguments=[
@@ -95,7 +95,7 @@ op_d566e5e5_7c69_482b_a582_ff53057ffee5 = KubernetesPodOperator(
     ],
     task_id="03_visualize_data_simple",
     env_vars={
-        "ELYRA_RUNTIME_ENV": "airflow",
+        "ELYRA_RUNTIME_ENV": "airflow-new",
         "AWS_ACCESS_KEY_ID": "minio",
         "AWS_SECRET_ACCESS_KEY": "minio123",
         "ELYRA_ENABLE_PIPELINE_INFO": "True",
@@ -108,7 +108,7 @@ op_d566e5e5_7c69_482b_a582_ff53057ffee5 = KubernetesPodOperator(
     labels={},
     tolerations=[],
     in_cluster=True,
-    config_file="None",
+    config_file=None,
     dag=dag,
 )
 
