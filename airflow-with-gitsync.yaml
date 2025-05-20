@@ -1,4 +1,3 @@
-# airflow-with-gitsync.yaml
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -9,12 +8,31 @@ data:
     #!/bin/sh
     # Initial clone
     git clone --single-branch --branch main https://github.com/victorfonseca/elyra-poc.git /tmp/repo
-    cp -r /tmp/repo/tests/dags/* /opt/airflow/dags/
+    mkdir -p /opt/airflow/dags
+    
+    # Initial sync - only if directory exists
+    if [ -d "/tmp/repo/tests/dags" ]; then
+      cp -r /tmp/repo/tests/dags/* /opt/airflow/dags/
+      echo "Initial DAGs synchronized successfully"
+    else
+      echo "Warning: /tmp/repo/tests/dags directory not found during initial sync"
+    fi
     
     # Continuous sync every 60 seconds
     while true; do
       echo "Syncing repository..."
       cd /tmp/repo && git pull
-      cp -r /tmp/repo/tests/dags/* /opt/airflow/dags/
+      
+      # Clean destination directory first (preserve __pycache__)
+      find /opt/airflow/dags -type f -name "*.py" -delete
+      
+      # Copy only if the directory exists
+      if [ -d "/tmp/repo/tests/dags" ]; then
+        cp -r /tmp/repo/tests/dags/* /opt/airflow/dags/
+        echo "DAGs synchronized successfully"
+      else
+        echo "Warning: /tmp/repo/tests/dags directory not found"
+      fi
+      
       sleep 60
     done
