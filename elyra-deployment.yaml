@@ -41,6 +41,18 @@ data:
         }
       ]
     }
+  jupyter_config.py: |
+    # Configuration for Elyra's Airflow Pipeline Processor
+    
+    # Tell Elyra to use modern Airflow operator imports
+    c.AirflowPipelineProcessor.available_airflow_operators = [
+        # Add the correct Kubernetes operator imports
+        "airflow.providers.cncf.kubernetes.operators.pod.KubernetesPodOperator",
+        
+        # Add the correct Kubernetes volume imports
+        "kubernetes.client.models.V1Volume",
+        "kubernetes.client.models.V1VolumeMount"
+    ]
   patch-elyra.sh: |
     #!/bin/bash
     set -e
@@ -54,45 +66,33 @@ data:
     # Install Airflow dependencies with pinned versions
     pip install apache-airflow==2.10.5 apache-airflow-providers-cncf-kubernetes>=2.0.0 --no-deps
     
-    # Find the Elyra airflow processor file
-    PROCESSOR_FILE=$(find /opt/conda/lib/python*/site-packages/elyra/pipeline/airflow -name "processor*.py" | head -n 1)
+    # Create Jupyter config directory
+    mkdir -p /home/jovyan/.jupyter
     
-    if [ -z "$PROCESSOR_FILE" ]; then
-      echo "Could not find Elyra Airflow processor file"
-      exit 1
-    fi
+    # Create configuration file for Airflow processor
+    cp /elyra-config/jupyter_config.py /home/jovyan/.jupyter/jupyter_config.py
     
-    echo "Patching $PROCESSOR_FILE"
+    # Fix permissions for the config file
+    chmod 644 /home/jovyan/.jupyter/jupyter_config.py
+    chown jovyan:users /home/jovyan/.jupyter/jupyter_config.py
     
-    # Check if already patched
-    if grep -q "tests/dags" "$PROCESSOR_FILE"; then
-      echo "Elyra Airflow processor already patched"
-    else
-      # Create backup
-      cp "$PROCESSOR_FILE" "${PROCESSOR_FILE}.bak"
-      
-      # Apply patch
-      sed -i 's/dag_file_path = os.path.join(self.git_repo_dir, dag_filename)/dags_dir = os.path.join(self.git_repo_dir, "tests\/dags")\n        os.makedirs(dags_dir, exist_ok=True)\n        dag_file_path = os.path.join(dags_dir, dag_filename)/g' "$PROCESSOR_FILE"
-      
-      echo "Successfully patched Elyra Airflow processor to use 'tests/dags' subdirectory"
-    fi
-    
-    # Create runtime configuration directory
+    # Create directories for metadata
     mkdir -p /home/jovyan/.local/share/jupyter/metadata/runtimes/
     mkdir -p /home/jovyan/.local/share/jupyter/metadata/component-catalogs/
     
-    # Create runtime configuration
+    # Create the Airflow runtime configuration with fixed properties
     cat > /home/jovyan/.local/share/jupyter/metadata/runtimes/airflow-runtime.json << 'EOF'
     {
       "display_name": "Apache Airflow",
       "metadata": {
         "runtime_type": "APACHE_AIRFLOW",
         "airflow_url": "http://airflow-webserver.airflow.svc.cluster.local:8080",
+        "api_endpoint": "http://airflow-webserver.airflow.svc.cluster.local:8080/api/v1",
         "github_api_endpoint": "https://api.github.com",
-        "github_repo": "https://github.com/victorfonseca/elyra-poc.git",
+        "github_repo": "victorfonseca/elyra-poc",
         "github_branch": "main",
-        "github_repo_token": "",
-        "cos_endpoint": "http://minio.default.svc.cluster.local:9000",
+        "github_repo_token": "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",
+        "cos_endpoint": "http://minio.minio-system.svc.cluster.local:9000",
         "cos_bucket": "elyra-airflow",
         "cos_username": "minio",
         "cos_password": "minio123"
@@ -101,7 +101,7 @@ data:
     }
     EOF
     
-    # Save the component catalog with name directly
+    # Create the component catalog
     cat > /home/jovyan/.local/share/jupyter/metadata/component-catalogs/airflow-k8s-components.json << EOF
     {
       "display_name": "Kubernetes Airflow Components",
@@ -115,11 +115,12 @@ data:
     }
     EOF
     
-    # Copy the components file to the location referenced in the metadata
+    # Copy components file
     cp /elyra-config/airflow_component_catalog.json /tmp/airflow_components.json
     
     # Fix permissions
     chown -R jovyan:users /home/jovyan/.local/share/jupyter/metadata/
+    chown -R jovyan:users /home/jovyan/.jupyter/
     
     echo "Elyra configuration completed successfully"
   post-process-dag.sh: |
@@ -129,57 +130,89 @@ data:
     LOG_FILE="/tmp/dag-processor.log"
     echo "Starting post-processing script at $(date)" > $LOG_FILE
     
+    # Create the output directory with proper permissions
+    mkdir -p /opt/airflow/dags/elyra_generated
+    chmod 777 /opt/airflow/dags/elyra_generated
+    
     # Function to process a DAG file
     process_dag() {
       local dagfile="$1"
       echo "$(date) - Processing $dagfile" >> $LOG_FILE
       
-      # Check if already processed
-      if grep -q "# PROCESSED_BY_SCRIPT" "$dagfile"; then
-        echo "$(date) - File already processed: $dagfile" >> $LOG_FILE
-        return
-      fi
-      
-      # Make a backup
+      # Make a backup before any changes
       cp "$dagfile" "${dagfile}.bak"
       
-      # Fix imports (just in case the component catalog didn't work)
+      # Fix imports with more aggressive pattern matching
       sed -i 's/from airflow\.contrib\.operators\.kubernetes_pod_operator import KubernetesPodOperator/from airflow.providers.cncf.kubernetes.operators.pod import KubernetesPodOperator/g' "$dagfile"
       sed -i 's/from airflow\.contrib\.kubernetes\.volume_mount import VolumeMount/from kubernetes.client.models import V1VolumeMount as VolumeMount/g' "$dagfile"
       sed -i 's/from airflow\.contrib\.kubernetes\.volume import Volume/from kubernetes.client.models import V1Volume as Volume/g' "$dagfile"
       
-      # Fix namespace
-      sed -i 's/namespace="default"/namespace="airflow"/g' "$dagfile"
+      # Fix namespace (more robust pattern)
+      sed -i 's/namespace="airflow"/namespace="airflow"/g' "$dagfile"
       
-      # Fix config_file
+      # Fix config_file - this needs to be more robust
       sed -i 's/config_file="None"/config_file=None/g' "$dagfile"
       
-      # Mark as processed
-      sed -i '1s/^/# PROCESSED_BY_SCRIPT\n/' "$dagfile"
+      # Add a marker to show this was processed
+      if ! grep -q "# PROCESSED_BY_SCRIPT" "$dagfile"; then
+        sed -i '1s/^/# PROCESSED_BY_SCRIPT\n/' "$dagfile"
+      fi
       
-      echo "$(date) - Processing complete for $dagfile" >> $LOG_FILE
+      echo "$(date) - Completed processing $dagfile" >> $LOG_FILE
+      
+      # Log the first few lines of the file after processing
+      echo "First 10 lines of processed file:" >> $LOG_FILE
+      head -n 10 "$dagfile" >> $LOG_FILE
+    }
+    
+    # Check a directory for DAG files
+    check_directory() {
+      local dir="$1"
+      echo "$(date) - Checking directory: $dir" >> $LOG_FILE
+      
+      if [ -d "$dir" ]; then
+        echo "Directory exists: $dir" >> $LOG_FILE
+        find "$dir" -type f -name "*.py" 2>/dev/null | while read dagfile; do
+          echo "Found file: $dagfile" >> $LOG_FILE
+          if ! grep -q "# PROCESSED_BY_SCRIPT" "$dagfile"; then
+            echo "$(date) - Processing new file: $dagfile" >> $LOG_FILE
+            process_dag "$dagfile"
+          else
+            echo "$(date) - File already processed: $dagfile" >> $LOG_FILE
+          fi
+        done
+      else
+        echo "Directory does not exist: $dir" >> $LOG_FILE
+      fi
+    }
+    
+    # List all git repos to help debug
+    find_git_repos() {
+      echo "$(date) - Searching for git repos" >> $LOG_FILE
+      find / -name .git -type d 2>/dev/null | while read gitdir; do
+        echo "Found git repo: $gitdir" >> $LOG_FILE
+        if [ -d "$gitdir/../tests/dags" ]; then
+          echo "Found tests/dags directory in repo: $gitdir/../tests/dags" >> $LOG_FILE
+          check_directory "$gitdir/../tests/dags"
+        fi
+      done
     }
     
     # Main loop
-    echo "$(date) - Starting dag processor watch loop" >> $LOG_FILE
-    
-    # First, process any existing files
-    echo "$(date) - Processing existing files" >> $LOG_FILE
-    find /home/jovyan/work -name "weather-dataprocessing-*.py" | while read dagfile; do
-      process_dag "$dagfile"
-    done
-    
-    # Monitor git repo directory for new files
-    WATCH_DIR="/opt/airflow/dags/repo/tests/dags"
-    mkdir -p "$WATCH_DIR"
-    
-    echo "$(date) - Watching $WATCH_DIR for new files" >> $LOG_FILE
-    
     while true; do
-      find "$WATCH_DIR" -name "weather-dataprocessing-*.py" -mmin -1 | while read dagfile; do
-        process_dag "$dagfile"
-      done
-      sleep 30
+      echo "$(date) - Starting check cycle" >> $LOG_FILE
+      
+      # Check important directories
+      check_directory "/opt/airflow/dags"
+      check_directory "/opt/airflow/dags/elyra_generated"
+      check_directory "/opt/airflow/dags/repo/tests/dags"
+      
+      # Find git repos and check their dags directories
+      find_git_repos
+      
+      # Sleep before next check
+      echo "$(date) - Finished check cycle, sleeping for 10 seconds" >> $LOG_FILE
+      sleep 10
     done
 ---
 # PersistentVolumeClaim for Elyra metadata (configurations)
@@ -281,10 +314,10 @@ spec:
         command: ["/bin/sh", "-c"]
         args:
         - |
-          apk add --no-cache bash sed grep findutils
+          apk add --no-cache bash sed grep findutils git
           echo "Starting DAG post-processor"
-          chmod +x /elyra-config/post-process-dag.sh
-          /elyra-config/post-process-dag.sh
+          chmod 777 /opt/airflow/dags
+          /bin/bash /elyra-config/post-process-dag.sh
         volumeMounts:
         - name: elyra-config
           mountPath: /elyra-config
