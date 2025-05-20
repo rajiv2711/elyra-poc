@@ -3,7 +3,7 @@ from kubernetes.client.models import V1VolumeMount as VolumeMount
 from kubernetes.client.models import V1Volume as Volume
 from airflow.providers.cncf.kubernetes.secret import Secret
 from airflow import DAG
-from airflow.utils.dates import days_ago
+import pendulum
 
 args = {
     "project_id": "weather-dataprocessing-0520002613",
@@ -13,7 +13,7 @@ dag = DAG(
     "weather-dataprocessing-0520002613",
     default_args=args,
     schedule_interval="@once",
-    start_date=days_ago(1),
+    start_date=pendulum.datetime(2025, 5, 19, tz="UTC"),
     description="""
 Created with Elyra 3.15.0 pipeline editor using `weather-dataprocessing.pipeline`.
     """,
