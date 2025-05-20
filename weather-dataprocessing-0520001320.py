@@ -1,3 +1,4 @@
+# Fixed imports for Airflow 2.10.5
 from airflow.providers.cncf.kubernetes.operators.pod import KubernetesPodOperator
 from kubernetes.client.models import V1VolumeMount as VolumeMount
 from kubernetes.client.models import V1Volume as Volume
