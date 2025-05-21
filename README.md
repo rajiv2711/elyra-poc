@@ -87,3 +87,7 @@ Elyra does not natively support specifying sub-paths (such as "your-org/your-rep
 If you require a very specific structure, consider customizing the Airflow Helm chart or deployment manifest to change git-sync settings or the DAG folder path in Airflow.
 
 For more details or guidance on any of these approaches, see the Airflow and Elyra documentation or reach out for further assistance.
+
+## Compatibility Notice
+
+**Important:** Elyra 3.15.0 is only fully compatible with Apache Airflow 1.10.15. Using other versions of Airflow may result in unexpected behavior or incompatibility issues with Elyra pipelines. Please ensure you deploy the specified versions for reliable integration. Refer to the [Elyra documentation changelog](https://elyra.readthedocs.io/en/stable/getting_started/changelog.html) for details.<mcreference link="https://elyra.readthedocs.io/en/stable/getting_started/changelog.html" index="2">2</mcreference>
