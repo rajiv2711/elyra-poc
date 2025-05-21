@@ -70,3 +70,20 @@ kubectl get namespace airflow-elyra
 - [MinIO Deployment and UI Access Guide](minio-deployment.md): Step-by-step instructions to deploy MinIO on Kubernetes, including manifest usage, service exposure, and accessing the MinIO web UI for bucket management.
 - [Airflow Kubernetes Operator with S3 DAG Storage: Architecture Diagram](airflow-k8s-s3-diagram.md): Explains how Airflow components interact with S3/MinIO for DAG storage, including the use of sidecar containers and shared volumes.
 - [Using a Custom Docker Image with Airflow KubernetesPodOperator](airflow-custom-image-diagram.md): Details on customizing Docker images for Airflow tasks, covering dependency installation, environment variables, credentials, and runtime configuration.
+
+## Configuring Sub-paths for Elyra DAG Repositories
+
+### Current Limitation
+Elyra does not natively support specifying sub-paths (such as "your-org/your-repo/subfolder") in the repository configuration for Airflow runtimes. The repository field only accepts the format "your-git-org/your-dag-repo" without additional path components.
+
+### Alternative Approaches
+1. **Use Branches Instead of Sub-paths**: Organize different DAG sets or purposes using separate branches (e.g., a "tests" branch) in your repository.
+2. **Create a Dedicated Repository**: Maintain a separate repository specifically for DAGs, structuring folders internally as needed.
+3. **Modify Airflow Configuration**: Advanced users can:
+   - Adjust git-sync container settings to sync a specific subdirectory
+   - Configure Airflow to scan for DAGs in specific subfolders within the repository
+4. **Use Folder Structure Within Repository**: While Elyra cannot target a sub-path, you can organize DAGs in folders inside your repo. Airflow can be configured to recursively scan these folders for DAGs.
+
+If you require a very specific structure, consider customizing the Airflow Helm chart or deployment manifest to change git-sync settings or the DAG folder path in Airflow.
+
+For more details or guidance on any of these approaches, see the Airflow and Elyra documentation or reach out for further assistance.
