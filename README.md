@@ -11,7 +11,6 @@ This project demonstrates deploying Apache Airflow 1.10.15 on Kubernetes for int
 - `AIRFLOW.md`: Airflow deployment and management guide
 - `Airflow DAG Info.md`: DAG troubleshooting and verification
 - `airflow-1.10.15-k8s.yaml`: Airflow deployment manifest
-- `airflow-3.0.1-values.yaml`: Helm values for Airflow
 - `elyra-deployment.yaml`: Elyra deployment manifest
 - `minio-deployment.yaml`: MinIO deployment manifest
 - `pipelines/`: Example pipelines and DAGs
