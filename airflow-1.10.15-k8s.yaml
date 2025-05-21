@@ -2,20 +2,20 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: airflow-elyra-test
+  name: airflow-elyra
 ---
 # ServiceAccount and RBAC Resources for Airflow
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: airflow
-  namespace: airflow-elyra-test
+  namespace: airflow-elyra
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: airflow-role
-  namespace: airflow-elyra-test
+  namespace: airflow-elyra
 rules:
 - apiGroups: [""]
   resources: ["pods", "pods/log"]
@@ -25,11 +25,11 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: airflow-rolebinding
-  namespace: airflow-elyra-test
+  namespace: airflow-elyra
 subjects:
 - kind: ServiceAccount
   name: airflow
-  namespace: airflow-elyra-test
+  namespace: airflow-elyra
 roleRef:
   kind: Role
   name: airflow-role
@@ -40,12 +40,12 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: airflow-config
-  namespace: airflow-elyra-test
+  namespace: airflow-elyra
 data:
   airflow.cfg: |
     [core]
     executor = LocalExecutor
-    sql_alchemy_conn = postgresql+psycopg2://postgres:postgres@postgresql.airflow-elyra-test.svc.cluster.local:5432/airflow
+    sql_alchemy_conn = postgresql+psycopg2://postgres:postgres@postgresql.airflow-elyra.svc.cluster.local:5432/airflow
     load_examples = False
     dags_folder = /opt/airflow/dags
     fernet_key = 9UGshNRJ_zq-E2RLpcJRPNFW5zEL5Xv9aCMjQQRKoxI=
@@ -65,7 +65,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: git-sync-config
-  namespace: airflow-elyra-test
+  namespace: airflow-elyra
 data:
   git-sync.sh: |
     #!/bin/sh
@@ -105,7 +105,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: airflow-dags-pvc
-  namespace: airflow-elyra-test
+  namespace: airflow-elyra
 spec:
   accessModes:
     - ReadWriteOnce
@@ -118,7 +118,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: postgresql
-  namespace: airflow-elyra-test
+  namespace: airflow-elyra
 spec:
   replicas: 1
   selector:
@@ -154,7 +154,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: postgresql
-  namespace: airflow-elyra-test
+  namespace: airflow-elyra
 spec:
   selector:
     app: postgresql
@@ -167,7 +167,7 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   name: airflow-init
-  namespace: airflow-elyra-test
+  namespace: airflow-elyra
 spec:
   template:
     spec:
@@ -182,7 +182,7 @@ spec:
         - |
           airflow version
           sleep 10  # Wait for PostgreSQL to be ready
-          export AIRFLOW__CORE__SQL_ALCHEMY_CONN="postgresql+psycopg2://postgres:postgres@postgresql.airflow-elyra-test.svc.cluster.local:5432/airflow"
+          export AIRFLOW__CORE__SQL_ALCHEMY_CONN="postgresql+psycopg2://postgres:postgres@postgresql.airflow-elyra.svc.cluster.local:5432/airflow"
           airflow initdb
           echo "Airflow database initialized"
 ---
@@ -191,7 +191,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: airflow-webserver
-  namespace: airflow-elyra-test
+  namespace: airflow-elyra
 spec:
   replicas: 1
   selector:
@@ -246,7 +246,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: airflow-scheduler
-  namespace: airflow-elyra-test
+  namespace: airflow-elyra
 spec:
   replicas: 1
   selector:
@@ -286,7 +286,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: airflow-webserver
-  namespace: airflow-elyra-test
+  namespace: airflow-elyra
 spec:
   type: NodePort
   selector:
@@ -302,7 +302,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: elyra-metadata-script
-  namespace: airflow-elyra-test
+  namespace: airflow-elyra
 data:
   setup-catalog.sh: |
     #!/bin/bash
@@ -337,7 +337,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: elyra-data-pvc
-  namespace: airflow-elyra-test
+  namespace: airflow-elyra
 spec:
   accessModes:
     - ReadWriteOnce
@@ -350,7 +350,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: elyra-work-pvc
-  namespace: airflow-elyra-test
+  namespace: airflow-elyra
 spec:
   accessModes:
     - ReadWriteOnce
@@ -363,7 +363,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: elyra
-  namespace: airflow-elyra-test
+  namespace: airflow-elyra
 spec:
   replicas: 1
   selector:
@@ -399,7 +399,7 @@ spec:
           value: "dGf7Hs9pKl2Mn6Qw3rT5yUi8oP1aZ0bX"
         # Configure Elyra to be aware of the Airflow service in the same namespace
         - name: ELYRA_AIRFLOW_URL
-          value: "http://airflow-webserver.airflow-elyra-test.svc.cluster.local:8080"
+          value: "http://airflow-webserver.airflow-elyra.svc.cluster.local:8080"
         command: ["jupyter", "lab", "--ip=0.0.0.0", "--port=8888", "--no-browser", "--allow-root"]
         volumeMounts:
         - name: elyra-data
@@ -442,7 +442,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: elyra
-  namespace: airflow-elyra-test
+  namespace: airflow-elyra
 spec:
   selector:
     app: elyra
