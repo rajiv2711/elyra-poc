@@ -70,7 +70,7 @@ data:
   git-sync.sh: |
     #!/bin/sh
     # Initial clone
-    git clone --single-branch --branch main https://github.com/victorfonseca/elyra-poc.git /tmp/repo
+    git clone --single-branch --branch main https://github.com/rajiv2711/elyra-poc.git /tmp/repo
     mkdir -p /opt/airflow/dags
     
     # Initial sync - only if directory exists
